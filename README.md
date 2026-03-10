@@ -7,7 +7,7 @@ Minimal Vercel serverless API that securely triggers a GitLab CI pipeline.
 - Exposes `POST /api/trigger-gitlab`
 - Keeps GitLab secrets on Vercel (server-side only)
 - Optionally restricts requests to a single frontend origin
-- Optionally requires a request shared secret
+- Validates GitLab OAuth bearer token before triggering CI
 
 ## Files
 
@@ -31,14 +31,14 @@ Minimal Vercel serverless API that securely triggers a GitLab CI pipeline.
 - Method: `POST`
 - Headers:
   - `Content-Type: application/json`
-  - `X-Trigger-Secret: <CLIENT_TRIGGER_SECRET>` (only if configured)
+  - `Authorization: Bearer <gitlab_oauth_access_token>`
 
 ## Example request
 
 ```bash
 curl -X POST "https://<your-project>.vercel.app/api/trigger-gitlab" \
   -H "Content-Type: application/json" \
-  -H "X-Trigger-Secret: <CLIENT_TRIGGER_SECRET>" \
+  -H "Authorization: Bearer <gitlab_oauth_access_token>" \
   -d '{"variables":{"DEPLOY_ENV":"staging"}}'
 ```
 
@@ -57,3 +57,13 @@ In your GitLab project:
    - `GITLAB_TRIGGER_TOKEN` = trigger token
    - `GITLAB_PROJECT_ID` = numeric project ID
    - `GITLAB_REF` = default branch (for example `main`)
+
+## Authorization model
+
+- Frontend users authenticate with GitLab OAuth PKCE.
+- Frontend calls this endpoint with `Authorization: Bearer ...`.
+- Endpoint validates token using `GET /api/v4/user`.
+- Endpoint optionally checks:
+  - `GITLAB_AUTH_PROJECT_ID` access (defaults to `GITLAB_PROJECT_ID`)
+  - `ALLOWED_GITLAB_USERNAMES` allowlist
+- Only then it uses server-side `GITLAB_TRIGGER_TOKEN` to start pipeline.
