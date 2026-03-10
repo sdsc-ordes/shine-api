@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/trigger-gitlab.js": {
+      "runtime": "@vercel/node@3"
+    }
+  }
+}
